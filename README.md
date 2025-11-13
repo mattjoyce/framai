@@ -60,7 +60,7 @@ Done. Professional metadata + polished audio files.
 ### 🤖 GPT-4 Refinement
 - Converts "umm, I'm standing in a field..." into professional catalog entries
 - Uses prompts designed for audio librarians
-- "Suburban Garden Ambience, Blanham Street, Sydney: Light breeze, distant traffic, bird calls"
+- Example: "Suburban Garden Ambience: Light breeze, distant traffic, bird calls, recorded on sunny day"
 
 ### 🎚️ Audio Post-Processing
 - Auto-trim based on transcription timestamps
@@ -191,10 +191,10 @@ fram-cli refine fram.json --model gpt-4 --temperature 0.1
 ```
 
 **Before:**
-> "Recording is taken standing in a suburban back garden in Blanham Street, uh, Sydney Australia. It's a sunny day. I heard helicopters, dog barking, traffic..."
+> "Recording is taken standing in a suburban back garden, uh, it's a sunny day. I heard helicopters, dog barking, traffic..."
 
 **After:**
-> "Suburban Garden Ambience, Blanham Street, Sydney, Australia: Recorded on a sunny day using a DIY microphone, capturing ambient noises including helicopter, dog barking, traffic, door closing, and person coughing."
+> "Suburban Garden Ambience: Recorded on a sunny day using a DIY microphone, capturing ambient noises including helicopter, dog barking, traffic, door closing, and person coughing."
 
 ### 4. Postprocess Command
 
@@ -228,39 +228,39 @@ Here's a real-world example from a field recording session:
 
 ```bash
 # 1. Process images taken with phone
-fram-cli images ./sydney_suburb_2023/ --output sydney.json
+fram-cli images ./my_recordings/ --output metadata.json
 
 # Output:
 # ✓ Found 1 image files
 # ✓ Extracted metadata from 1 images
 # ✓ Clustered to 1 unique locations
-# Location: Croydon Park, Sydney, New South Wales
+# Location: [Your Location]
 # Weather: 12°C, 83% humidity, light drizzle
 # Sunrise: 07:55, Sunset: 18:09
 
 # 2. Transcribe verbal notes from audio files
-fram-cli transcribe ./sydney_suburb_2023/ --duration 30 --output sydney.json
+fram-cli transcribe ./my_recordings/ --duration 30 --output metadata.json
 
 # Output:
 # ✓ Found 2 audio files
 # ✓ Model loaded successfully
-# ✓ Transcribed 2023-07-23 13.11.54.wav
-# "Recording is taken standing in a suburban back garden..."
+# ✓ Transcribed recording_001.wav
+# "Recording is taken in a garden, sunny day, light breeze..."
 
 # 3. Refine with GPT-4 (requires API key)
-fram-cli refine sydney.json
+fram-cli refine metadata.json
 
 # Output:
 # ✓ Refined 2 transcriptions
-# "Suburban Garden Ambience, Blanham Street, Sydney: Light breeze,
-#  distant aircraft, traffic noise, bird calls..."
+# "Suburban Garden Ambience: Light breeze, distant aircraft,
+#  traffic noise, bird calls..."
 
 # 4. Trim and fade audio
-fram-cli postprocess ./sydney_suburb_2023/ --fade 30 --json sydney.json
+fram-cli postprocess ./my_recordings/ --fade 30 --json metadata.json
 
 # Output:
 # ✓ Processed 2 audio files
-# Created: 2023-07-23 13.11.54_POST.wav (trimmed & faded)
+# Created: recording_001_POST.wav (trimmed & faded)
 ```
 
 **Final result:** Complete JSON metadata + polished audio files ready for your library.
@@ -311,9 +311,9 @@ From the test recording in `TestData/`:
 ```json
 {
   "locations": [{
-    "latitude": -33.895989,
-    "longitude": 151.091942,
-    "location_name": "Croydon Park, Sydney, New South Wales, Australia",
+    "latitude": XX.XXXXX,
+    "longitude": XX.XXXXX,
+    "location_name": "[Your Location]",
     "datetime": "2023-07-23T13:27:11",
     "weather": {
       "temperature_2m": 11.9,
@@ -325,12 +325,12 @@ From the test recording in `TestData/`:
     }
   }],
   "audio_events": [{
-    "audio_filename": "2023-07-23 13.11.54.wav",
+    "audio_filename": "recording_001.wav",
     "duration_seconds": 198.45,
     "header": 29.12,
     "footer": 11.62,
-    "extracted_text": "Recording is taken standing in a suburban back garden...",
-    "gpt_refined_text": "Suburban Garden Ambience, Blanham Street, Sydney: Sunny day with light breeze, capturing distant aircraft, traffic, bird calls..."
+    "extracted_text": "Recording taken in suburban garden, sunny day...",
+    "gpt_refined_text": "Suburban Garden Ambience: Sunny day with light breeze, capturing distant aircraft, traffic, bird calls..."
   }]
 }
 ```
@@ -418,15 +418,6 @@ framai/
 ## 🤝 Contributing
 
 This is a personal project but suggestions welcome! Open an issue or PR.
-
-## 📝 Roadmap
-
-- [ ] GUI interface for non-technical users
-- [ ] Support for more audio formats (FLAC, M4A)
-- [ ] Bioacoustic analysis integration
-- [ ] Export to BWF metadata format
-- [ ] Batch processing improvements
-- [ ] Cloud storage integration (S3, Dropbox)
 
 ## 🙏 Credits
 
