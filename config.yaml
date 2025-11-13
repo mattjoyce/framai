@@ -1,0 +1,224 @@
+# FRAMAI Configuration File
+# Field Recording Audio/Media Analysis & Integration
+
+# =============================================================================
+# AI Models Configuration
+# =============================================================================
+ai_models:
+  openai:
+    # API Key Configuration (priority: env var > file > inline)
+    api_key: ${OPENAI_API_KEY}           # Environment variable (preferred)
+    api_key_file: "key_openai.txt"       # Fallback to file
+
+    # GPT Configuration
+    gpt_model: "gpt-4"
+    temperature: 0.1
+    whisper_api_model: "whisper-1"       # OpenAI Whisper API model
+
+    # GPT Prompts for transcription refinement
+    prompts:
+      audio_librarian: |
+        Adopt the role of an audio librarian with a deep understanding of the
+        UCS Audio classification system. I will provide short descriptions of
+        recordings. Your task is to refine these descriptions to be concise,
+        factual, and professionally catalogued.
+
+      recording_description: |
+        Write a concise recording description from these notes: {text}
+        Stick to the facts. Turn these notes into a clear, professional sentence.
+
+      ucs_classification: |
+        You are a helpful assistant with a deep understanding of the UCS Audio
+        classification system. I will provide short descriptions of recordings.
+
+  # Local Whisper Configuration
+  whisper:
+    model_name: "base.en"                # Whisper model to use
+    model_path: "./models/"              # Model download directory
+    word_timestamps: true                # Enable word-level timestamps
+    fp16: false                          # Use FP16 precision (faster on GPU)
+
+# =============================================================================
+# Weather API Configuration (Open-Meteo)
+# =============================================================================
+weather_api:
+  provider: "open-meteo"
+  endpoint: "https://archive-api.open-meteo.com/v1/archive"
+  cache_dir: ".weather_cache"            # Local cache directory
+
+  # Weather variables to fetch (Open-Meteo hourly data)
+  variables:
+    - "temperature_2m"                   # Temperature at 2m height (°C)
+    - "relative_humidity_2m"             # Relative humidity at 2m (%)
+    - "precipitation"                    # Precipitation (mm)
+    - "wind_speed_10m"                   # Wind speed at 10m (km/h)
+    - "weather_code"                     # WMO weather code
+    - "cloud_cover"                      # Cloud cover (%)
+    - "pressure_msl"                     # Pressure at mean sea level (hPa)
+
+  # Additional options
+  daily_variables:
+    - "sunrise"
+    - "sunset"
+
+  timezone: "auto"                       # Auto-detect timezone from coordinates
+
+  # Legacy Visual Crossing (deprecated)
+  visual_crossing:
+    enabled: false
+    api_key_file: "key_visualcrossing.txt"
+    endpoint: "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline"
+
+# =============================================================================
+# Geocoding API Configuration (OpenStreetMap Nominatim)
+# =============================================================================
+geocoding_api:
+  provider: "openstreetmap"
+  endpoint: "https://nominatim.openstreetmap.org/reverse"
+
+  # Query parameters
+  format: "jsonv2"
+  zoom_level: 18                         # Detail level (18 = building level)
+  address_details: true
+
+  # Rate limiting (respect OSM Nominatim usage policy)
+  rate_limit_delay: 1.1                  # Seconds between requests
+
+  # HTTP headers
+  user_agent: "framai-cli/1.0"           # Identify your application
+
+# =============================================================================
+# File Paths & Output Configuration
+# =============================================================================
+file_paths:
+  # Default output files
+  output_json: "fram.json"               # Standard output JSON
+  legacy_json: "fram-gpt.json"           # Legacy output name (deprecated)
+
+  # Temporary files
+  temp_audio_wav: "temp.wav"
+  temp_audio_mp3: "temp.mp3"
+
+  # Output naming
+  output_suffix: "_POST"                 # Suffix for post-processed files
+
+  # Supported file formats
+  supported_formats:
+    audio: ["wav", "mp3", "flac"]
+    image: [".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"]
+
+# =============================================================================
+# Processing Defaults
+# =============================================================================
+processing:
+  audio:
+    # Transcription settings
+    default_duration: 30                 # Seconds to transcribe (default)
+    split_threshold_seconds: 60          # Split long files at this threshold
+
+    # Post-processing settings
+    fade_duration: 30                    # Fade in/out duration (seconds)
+    fade_length_multiplier: 3            # Min length = fade_duration * multiplier
+    header_buffer: 0                     # Header buffer before trim point (seconds)
+    footer_buffer: 0                     # Footer buffer after trim point (seconds)
+
+    # Audio file processing
+    sample_rate: 16000                   # Target sample rate for Whisper
+    channels: 1                          # Mono conversion
+
+  image:
+    # Location clustering
+    location_threshold_meters: 1000      # Group locations within this distance
+
+    # GPS precision
+    gps_precision: 6                     # Decimal places for coordinates
+
+    # Time rounding for weather lookups
+    time_round_minutes: 60               # Round to nearest hour
+
+# =============================================================================
+# Formatting Configuration
+# =============================================================================
+formatting:
+  datetime:
+    # Time format strings (Python strftime)
+    time_format: "%H:%M"                           # HH:MM
+    exif_format: "%Y:%m:%d %H:%M:%S"              # EXIF datetime format
+    iso_format: "%Y-%m-%dT%H:%M:%S"               # ISO 8601 format
+    weather_date_format: "%Y-%m-%d"               # YYYY-MM-DD for API calls
+
+  coordinates:
+    decimal_places: 6                    # GPS coordinate precision
+    format: "decimal"                    # "decimal" or "dms"
+
+# =============================================================================
+# Metadata Configuration
+# =============================================================================
+metadata:
+  # EXIF tag IDs (PIL/Pillow)
+  exif_tags:
+    datetime: 306                        # DateTime tag
+    gps_info: 34853                      # GPSInfo tag
+
+  # GPS sub-tags (within GPSInfo)
+  gps_sub_tags:
+    latitude: 2                          # GPSLatitude
+    latitude_ref: 1                      # GPSLatitudeRef (N/S)
+    longitude: 4                         # GPSLongitude
+    longitude_ref: 3                     # GPSLongitudeRef (E/W)
+
+  # GPS hemisphere indicators
+  gps:
+    hemisphere_south: "S"
+    hemisphere_west: "W"
+    hemisphere_north: "N"
+    hemisphere_east: "E"
+
+  # Earth constants for distance calculations
+  earth_radius_km: 6371.0                # Mean Earth radius
+
+# =============================================================================
+# Logging & Console Output
+# =============================================================================
+logging:
+  verbose_default: false                 # Default verbosity
+  log_level: "INFO"                      # DEBUG, INFO, WARNING, ERROR
+  log_file: null                         # Log file path (null = console only)
+
+  # Rich console settings
+  console:
+    color_system: "auto"                 # auto, standard, 256, truecolor, windows
+    force_terminal: null                 # Force terminal mode (true/false/null)
+    force_jupyter: null                  # Force Jupyter mode (true/false/null)
+
+# =============================================================================
+# Thresholds & Limits
+# =============================================================================
+thresholds:
+  geographic:
+    location_clustering_meters: 1000     # Group nearby GPS points
+    max_distance_warning_km: 1000        # Warn if distances exceed this
+
+  audio:
+    min_duration_seconds: 1              # Skip files shorter than this
+    max_duration_seconds: null           # No maximum by default
+    split_at_seconds: 60                 # Split processing for long files
+
+  weather:
+    max_cache_age_days: 30               # Refresh weather data after this
+    timeout_seconds: 30                  # API timeout
+
+# =============================================================================
+# Feature Flags
+# =============================================================================
+features:
+  weather_integration: true              # Enable weather data fetching
+  geocoding: true                        # Enable location name lookup
+  gpt_refinement: true                   # Enable GPT transcription refinement
+  dry_run_default: false                 # Default dry-run mode
+
+  # Experimental features
+  experimental:
+    parallel_processing: false           # Parallel file processing
+    gpu_acceleration: false              # Use GPU for Whisper
+    caching: true                        # Enable result caching

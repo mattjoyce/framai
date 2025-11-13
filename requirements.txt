@@ -1,0 +1,56 @@
+# FRAMAI Requirements
+# Field Recording Audio/Media Analysis & Integration
+
+# =============================================================================
+# Core Dependencies
+# =============================================================================
+numpy>=1.24.0
+pandas>=2.0.0
+PyYAML>=6.0
+
+# =============================================================================
+# CLI & Console Interface
+# =============================================================================
+click>=8.0.0
+rich>=13.0.0
+
+# =============================================================================
+# AI & ML Models
+# =============================================================================
+openai>=1.0.0                           # OpenAI API (GPT-4, Whisper API)
+openai-whisper                          # Local Whisper transcription
+
+# =============================================================================
+# Weather API (Open-Meteo)
+# =============================================================================
+openmeteo-requests>=1.0.0              # Open-Meteo Python client
+requests>=2.31.0                        # HTTP requests
+requests-cache>=1.0.0                   # Request caching for API calls
+retry-requests>=2.0.0                   # Retry logic with backoff
+
+# =============================================================================
+# Audio Processing
+# =============================================================================
+pydub                                   # Audio manipulation (trim, fade)
+ffmpeg-python                           # FFmpeg wrapper (optional)
+
+# =============================================================================
+# Image Processing & EXIF
+# =============================================================================
+Pillow>=10.0.0                         # Image processing and EXIF extraction
+
+# =============================================================================
+# Optional Dependencies
+# =============================================================================
+# geopy                                 # Alternative geocoding library
+# python-dotenv                         # .env file support
+# tqdm                                  # Alternative progress bars
+
+# =============================================================================
+# Development Dependencies (optional)
+# =============================================================================
+# pytest                                # Testing framework
+# pytest-cov                            # Coverage reporting
+# black                                 # Code formatting
+# flake8                                # Linting
+# mypy                                  # Type checking

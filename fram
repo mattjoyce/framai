@@ -1,0 +1,15 @@
+#!/bin/bash
+# Wrapper script for FRAMAI CLI that sets up environment for Whisper
+# Usage: ./fram [command] [options]
+
+# Fix OpenMP library conflicts on macOS
+export KMP_DUPLICATE_LIB_OK=TRUE
+export OMP_NUM_THREADS=1
+
+# Activate virtual environment if not already active
+if [ -z "$VIRTUAL_ENV" ]; then
+    source ~/Environments/framai/bin/activate
+fi
+
+# Run the CLI
+python3 "$(dirname "$0")/fram_cli.py" "$@"
