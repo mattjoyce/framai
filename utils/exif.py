@@ -3,11 +3,12 @@ EXIF metadata extraction utilities
 Handles GPS coordinates and datetime extraction from images
 """
 
-from PIL import Image
-from PIL.ExifTags import TAGS, GPSTAGS
-from datetime import datetime, timedelta
-from typing import Optional, Tuple, Dict, Any
 import logging
+from datetime import datetime, timedelta
+from typing import Any, Dict, Optional, Tuple
+
+from PIL import Image
+from PIL.ExifTags import GPSTAGS, TAGS
 
 logger = logging.getLogger(__name__)
 
@@ -225,7 +226,7 @@ if __name__ == '__main__':
 
         # All EXIF
         exif = extract_all_exif(image_path)
-        print(f"\nAll EXIF tags:")
+        print("\nAll EXIF tags:")
         for key, value in exif.items():
             print(f"  {key}: {value}")
     else:

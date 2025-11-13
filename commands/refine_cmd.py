@@ -6,20 +6,16 @@ Refactored from fram-audio.py to use new infrastructure
 
 import json
 import logging
-from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
-# Import utilities
 from utils.console import (
+    create_progress_bar,
+    print_dry_run_summary,
+    print_error,
     print_header,
     print_section,
     print_success,
-    print_warning,
-    print_error,
-    print_info,
-    print_summary_table,
-    print_dry_run_summary,
-    create_progress_bar
+    print_warning
 )
 
 logger = logging.getLogger(__name__)
@@ -27,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 def run_refine_command(json_file: str, config: Dict[str, Any],
                       options: Dict[str, Any], dry_run: bool = False,
-                      verbose: bool = False) -> bool:
+                      verbose: bool = False) -> bool:  # pylint: disable=unused-argument
     """
     Main entry point for refine command.
 
@@ -59,7 +55,7 @@ def run_refine_command(json_file: str, config: Dict[str, Any],
     # Load JSON file
     print_section("Loading transcriptions")
     try:
-        with open(json_file, 'r') as f:
+        with open(json_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
     except FileNotFoundError:
         print_error(f"JSON file not found: {json_file}")
@@ -83,19 +79,12 @@ def run_refine_command(json_file: str, config: Dict[str, Any],
         actions = [
             f"Refine {len(events_to_refine)} transcriptions using GPT-4",
             f"Model: {model}, Temperature: {temperature}",
-            f"Save refined text back to JSON",
+            "Save refined text back to JSON",
             f"Output to: {output_file}"
         ]
 
         print_dry_run_summary("GPT Refinement Plan", actions)
         return True
-
-    # Check for OpenAI API
-    try:
-        import openai
-    except ImportError:
-        print_error("OpenAI library not installed. Install with: pip install openai")
-        return False
 
     # Get API key
     api_key = config['ai_models']['openai'].get('api_key')
@@ -145,12 +134,6 @@ def refine_transcriptions(audio_events: list, config: Dict[str, Any],
     Returns:
         Number of successfully refined transcriptions
     """
-    try:
-        import openai
-        openai.api_key = api_key
-    except ImportError:
-        return 0
-
     # Get prompts from config
     system_prompt = config['ai_models']['openai']['prompts'].get(
         'audio_librarian',
@@ -215,7 +198,7 @@ def save_results(data: Dict[str, Any], output_file: str) -> bool:
         True if successful, False otherwise
     """
     try:
-        with open(output_file, 'w') as f:
+        with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
 
         logger.info(f"Saved results to {output_file}")

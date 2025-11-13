@@ -4,15 +4,16 @@ Uses Open-Meteo API for historical weather data retrieval
 Adapted from biophony-ai weather_integration.py patterns
 """
 
+import logging
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Optional
+
 import openmeteo_requests
+import pandas as pd
+import requests
 import requests_cache
 from retry_requests import retry
-import requests
-import pandas as pd
-from pathlib import Path
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List, Tuple
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +119,7 @@ class WeatherClient:
             response = responses[0]
 
             # Also make raw API call to get daily data (sunrise/sunset)
-            raw_response = requests.get(self.endpoint, params=params)
+            raw_response = requests.get(self.endpoint, params=params, timeout=30)
             raw_data = raw_response.json() if raw_response.status_code == 200 else None
 
             # Extract hourly data
@@ -253,7 +254,7 @@ class WeatherClient:
             response = responses[0]
 
             # Get raw data for daily variables
-            raw_response = requests.get(self.endpoint, params=params)
+            raw_response = requests.get(self.endpoint, params=params, timeout=30)
             raw_data = raw_response.json() if raw_response.status_code == 200 else None
 
             # Extract hourly data
@@ -414,7 +415,6 @@ def get_weather_description(wmo_code: int) -> str:
 
 if __name__ == '__main__':
     # Test weather client
-    import sys
     logging.basicConfig(level=logging.INFO)
 
     # Load config

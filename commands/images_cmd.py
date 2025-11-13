@@ -6,24 +6,23 @@ Refactored from images.py and fram-image.py to use new infrastructure
 
 import json
 import logging
-from pathlib import Path
-from typing import Dict, Any, List, Tuple, Optional
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-# Import utilities
-from utils.exif import extract_gps_from_image, extract_datetime_from_image
-from utils.geocoding import GeocodingClient, cluster_locations, calculate_distance
 from utils.console import (
+    create_progress_bar,
+    print_dry_run_summary,
+    print_error,
     print_header,
+    print_info,
     print_section,
     print_success,
-    print_warning,
-    print_error,
-    print_info,
     print_summary_table,
-    print_dry_run_summary,
-    create_progress_bar
+    print_warning
 )
+from utils.exif import extract_datetime_from_image, extract_gps_from_image
+from utils.geocoding import GeocodingClient, calculate_distance, cluster_locations
 from weather import WeatherClient
 
 logger = logging.getLogger(__name__)
@@ -228,11 +227,11 @@ def process_images(image_files: List[Path], config: Dict[str, Any],
 
 
 def cluster_and_enrich_locations(image_metadata: List[Dict[str, Any]],
-                                 config: Dict[str, Any],
+                                 config: Dict[str, Any],  # pylint: disable=unused-argument
                                  weather_client: Optional[WeatherClient],
                                  geocoding_client: Optional[GeocodingClient],
                                  threshold_meters: int,
-                                 verbose: bool) -> List[Dict[str, Any]]:
+                                 verbose: bool) -> List[Dict[str, Any]]:  # pylint: disable=unused-argument
     """
     Cluster nearby locations and enrich with weather and geocoding data.
 
@@ -401,7 +400,7 @@ def save_results(results: Dict[str, Any], output_file: str, directory: str) -> b
             output_path = Path(directory) / output_file
 
         # Save to JSON
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=2)
 
         logger.info(f"Saved results to {output_path}")

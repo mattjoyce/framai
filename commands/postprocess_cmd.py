@@ -7,27 +7,25 @@ Refactored from postprocess.py to use new infrastructure
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Dict
 
-# Import utilities
 from utils.console import (
+    create_progress_bar,
+    print_dry_run_summary,
+    print_error,
     print_header,
+    print_info,
     print_section,
     print_success,
-    print_warning,
-    print_error,
-    print_info,
-    print_summary_table,
-    print_dry_run_summary,
-    create_progress_bar
+    print_warning
 )
 
 logger = logging.getLogger(__name__)
 
 
-def run_postprocess_command(directory: str, config: Dict[str, Any],
+def run_postprocess_command(directory: str, config: Dict[str, Any],  # pylint: disable=unused-argument
                            options: Dict[str, Any], dry_run: bool = False,
-                           verbose: bool = False) -> bool:
+                           verbose: bool = False) -> bool:  # pylint: disable=unused-argument
     """
     Main entry point for postprocess command.
 
@@ -67,7 +65,7 @@ def run_postprocess_command(directory: str, config: Dict[str, Any],
     # Load JSON file
     print_section("Loading trim points from JSON")
     try:
-        with open(json_path, 'r') as f:
+        with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
     except FileNotFoundError:
         print_error(f"JSON file not found: {json_path}")
@@ -100,18 +98,10 @@ def run_postprocess_command(directory: str, config: Dict[str, Any],
             filename = event.get('audio_filename', 'unknown')
             header = event.get('header', 0)
             footer = event.get('footer', 0)
-            actions.append(f"  {filename}: trim at {header:.1f}s / {footer:.1f}s")
+            actions.append(f"  {filename}: trim at {header:.1f}s / {footer:.1f}s")  # noqa: W1309
 
         print_dry_run_summary("Audio Post-Processing Plan", actions)
         return True
-
-    # Check for audio processing library
-    try:
-        from pydub import AudioSegment
-        audio_available = True
-    except ImportError:
-        print_error("Pydub not available (Python 3.13+ compatibility issue)")
-        return False
 
     # Process audio files
     print_section("Processing audio files")
@@ -142,10 +132,7 @@ def process_audio_files(audio_events: list, directory: str, fade_duration: int,
     Returns:
         Number of successfully processed files
     """
-    try:
-        from pydub import AudioSegment
-    except ImportError:
-        return 0
+    from pydub import AudioSegment
 
     processed_count = 0
     dir_path = Path(directory)

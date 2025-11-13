@@ -3,10 +3,11 @@ Geocoding utilities using OpenStreetMap Nominatim API
 Respects OSM usage policy with rate limiting
 """
 
-import requests
-import time
-from typing import Dict, Any, Optional
 import logging
+import time
+from typing import Any, Dict, Optional
+
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -279,7 +280,7 @@ if __name__ == '__main__':
     data = client.reverse_geocode(lat, lon)
     if data:
         print(f"Display name: {data.get('display_name')}")
-        print(f"\nAddress:")
+        print("\nAddress:")
         for key, value in data.get('address', {}).items():
             print(f"  {key}: {value}")
 
@@ -288,7 +289,7 @@ if __name__ == '__main__':
     print(f"\nSimple name: {name}")
 
     # Test distance calculation
-    print(f"\nTesting distance calculation:")
+    print("\nTesting distance calculation:")
     # Sydney to Melbourne
     sydney = (-33.8688, 151.2093)
     melbourne = (-37.8136, 144.9631)

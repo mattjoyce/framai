@@ -7,22 +7,19 @@ Refactored from transcribe.py to use new infrastructure
 import json
 import logging
 import os
-from pathlib import Path
-from typing import Dict, Any, List, Tuple, Optional
-from datetime import datetime
 import time
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-# Import utilities
 from utils.console import (
+    print_dry_run_summary,
+    print_error,
     print_header,
+    print_info,
     print_section,
     print_success,
-    print_warning,
-    print_error,
-    print_info,
     print_summary_table,
-    print_dry_run_summary,
-    create_progress_bar
+    print_warning
 )
 
 logger = logging.getLogger(__name__)
@@ -142,9 +139,9 @@ def find_audio_files(directory: str, file_types: List[str]) -> List[Path]:
     return audio_files
 
 
-def process_audio_files(audio_files: List[Path], directory: str,
-                       config: Dict[str, Any], duration: int, model: str,
-                       word_timestamps: bool, verbose: bool) -> Optional[Dict[str, Any]]:
+def process_audio_files(audio_files: List[Path], directory: str,  # pylint: disable=unused-argument
+                       config: Dict[str, Any], duration: int, model: str,  # pylint: disable=unused-argument
+                       word_timestamps: bool, verbose: bool) -> Optional[Dict[str, Any]]:  # pylint: disable=unused-argument
     """
     Process all audio files and transcribe them.
 
@@ -304,7 +301,7 @@ def save_results(results: Dict[str, Any], output_file: str, directory: str) -> b
 
         # Load existing data if present
         if output_path.exists():
-            with open(output_path, 'r') as f:
+            with open(output_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
         else:
             data = {}
@@ -320,7 +317,7 @@ def save_results(results: Dict[str, Any], output_file: str, directory: str) -> b
         data['audio_events'].extend(results['audio_events'])
 
         # Save to JSON
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
 
         logger.info(f"Saved results to {output_path}")

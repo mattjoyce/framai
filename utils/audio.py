@@ -3,10 +3,11 @@ Audio processing utilities
 Handles audio extraction, trimming, fading using pydub
 """
 
-from pydub import AudioSegment
-from pathlib import Path
-from typing import Optional, Tuple
 import logging
+from pathlib import Path
+from typing import Optional
+
+from pydub import AudioSegment
 
 logger = logging.getLogger(__name__)
 
@@ -266,7 +267,7 @@ def extract_first_and_last_minutes(file_path: str, output_path: Optional[str] = 
 
         # If audio is shorter than 2 minutes, return as-is
         if len(audio) <= one_minute_ms * 2:
-            logger.debug(f"Audio shorter than 2 minutes, returning full audio")
+            logger.debug("Audio shorter than 2 minutes, returning full audio")
             return audio
 
         # Extract first minute

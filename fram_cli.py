@@ -4,22 +4,24 @@ FRAMAI - Field Recording Audio/Media Analysis & Integration
 Main CLI entry point using Click
 """
 
-import click
 import logging
 import sys
-from pathlib import Path
 from typing import Optional
+
+import click
 
 # Import configuration and utilities
 from config import load_config, print_config_summary
 from utils.console import (
-    console,
-    print_header,
     print_error,
     print_success,
     print_warning,
     print_config_summary as print_config_table
 )
+from commands.images_cmd import run_images_command
+from commands.transcribe_cmd import run_transcribe_command
+from commands.refine_cmd import run_refine_command
+from commands.postprocess_cmd import run_postprocess_command
 
 # Version
 __version__ = "1.0.0"
@@ -27,6 +29,11 @@ __version__ = "1.0.0"
 
 # Custom Click context class to hold shared state
 class FramContext:
+    """
+    Context object for Click CLI commands.
+
+    Holds shared configuration and state across all commands.
+    """
     def __init__(self):
         self.config = None
         self.verbose = False
@@ -123,7 +130,6 @@ def images(ctx: FramContext, directory: str, output: Optional[str],
         fram-cli images ./Final/ --output images.json
     """
     # Import command implementation
-    from commands.images_cmd import run_images_command
 
     # Prepare options
     options = {
@@ -145,7 +151,7 @@ def images(ctx: FramContext, directory: str, output: Optional[str],
         )
 
         if success:
-            print_success(f"Images processed successfully")
+            print_success("Images processed successfully")
             sys.exit(0)
         else:
             print_error("Image processing failed")
@@ -188,7 +194,6 @@ def transcribe(ctx: FramContext, directory: str, output: Optional[str],
         fram-cli transcribe ./recordings/ --duration 30 --model base.en
     """
     # Import command implementation
-    from commands.transcribe_cmd import run_transcribe_command
 
     # Prepare options
     options = {
@@ -251,7 +256,6 @@ def refine(ctx: FramContext, json_file: str, output: Optional[str],
         fram-cli refine fram.json --output refined.json
     """
     # Import command implementation
-    from commands.refine_cmd import run_refine_command
 
     # Prepare options
     options = {
@@ -314,7 +318,6 @@ def postprocess(ctx: FramContext, directory: str, json: Optional[str],
         fram-cli postprocess ./recordings/ --fade 30 --suffix _FINAL
     """
     # Import command implementation
-    from commands.postprocess_cmd import run_postprocess_command
 
     # Prepare options
     options = {

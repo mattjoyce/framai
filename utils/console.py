@@ -3,20 +3,21 @@ Console output utilities using Rich library
 Provides progress bars, tables, and formatted output
 """
 
+import logging
+from typing import Any, Dict, List, Optional
+
+from rich import box
 from rich.console import Console
+from rich.panel import Panel
 from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
     Progress,
     SpinnerColumn,
-    BarColumn,
     TextColumn,
-    TimeRemainingColumn,
-    MofNCompleteColumn
+    TimeRemainingColumn
 )
 from rich.table import Table
-from rich.panel import Panel
-from rich import box
-from typing import List, Dict, Any, Optional
-import logging
 
 logger = logging.getLogger(__name__)
 

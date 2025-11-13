@@ -3,11 +3,12 @@ Configuration Management Module for FRAMAI
 Handles loading, validation, and environment variable overrides for YAML config
 """
 
-import yaml
+import logging
 import os
 from pathlib import Path
-from typing import Dict, Any, Optional, List
-import logging
+from typing import Any, Dict, Optional
+
+import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
     # Load environment variables from ~/.env if it exists
     env_file = Path.home() / '.env'
     if env_file.exists():
-        with open(env_file, 'r') as f:
+        with open(env_file, 'r', encoding='utf-8') as f:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith('#') and '=' in line:
@@ -53,7 +54,7 @@ def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
         if not config_file.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
 
-        with open(config_file, 'r') as f:
+        with open(config_file, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
         config_source = str(config_file)
         logger.info(f"Loaded config from: {config_source}")
@@ -64,7 +65,7 @@ def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
             config_file = Path(path_str).expanduser()
             if config_file.exists():
                 try:
-                    with open(config_file, 'r') as f:
+                    with open(config_file, 'r', encoding='utf-8') as f:
                         config = yaml.safe_load(f)
                     config_source = str(config_file)
                     logger.info(f"Loaded config from: {config_source}")
@@ -147,7 +148,7 @@ def apply_api_key_files(config: Dict[str, Any]) -> Dict[str, Any]:
         key_path = Path(key_file)
         if key_path.exists():
             try:
-                with open(key_path, 'r') as f:
+                with open(key_path, 'r', encoding='utf-8') as f:
                     api_key = f.read().strip()
                 if api_key:
                     config['ai_models']['openai']['api_key'] = api_key
@@ -162,7 +163,7 @@ def apply_api_key_files(config: Dict[str, Any]) -> Dict[str, Any]:
             key_path = Path(key_file)
             if key_path.exists():
                 try:
-                    with open(key_path, 'r') as f:
+                    with open(key_path, 'r', encoding='utf-8') as f:
                         api_key = f.read().strip()
                     if api_key:
                         config['weather_api']['visual_crossing']['api_key'] = api_key
@@ -342,20 +343,20 @@ def print_config_summary(config: Dict[str, Any]) -> None:
     if '_meta' in config and 'source' in config['_meta']:
         print(f"Source: {config['_meta']['source']}")
 
-    print(f"\nAI Models:")
+    print("\nAI Models:")
     print(f"  OpenAI GPT: {config.get('ai_models', {}).get('openai', {}).get('gpt_model', 'N/A')}")
     print(f"  Whisper: {config.get('ai_models', {}).get('whisper', {}).get('model_name', 'N/A')}")
 
-    print(f"\nWeather API:")
+    print("\nWeather API:")
     print(f"  Provider: {config.get('weather_api', {}).get('provider', 'N/A')}")
 
-    print(f"\nGeocoding API:")
+    print("\nGeocoding API:")
     print(f"  Provider: {config.get('geocoding_api', {}).get('provider', 'N/A')}")
 
-    print(f"\nFile Paths:")
+    print("\nFile Paths:")
     print(f"  Output JSON: {config.get('file_paths', {}).get('output_json', 'N/A')}")
 
-    print(f"\nFeatures:")
+    print("\nFeatures:")
     features = config.get('features', {})
     print(f"  Weather Integration: {features.get('weather_integration', 'N/A')}")
     print(f"  Geocoding: {features.get('geocoding', 'N/A')}")
@@ -378,7 +379,7 @@ def load_api_key(key_file: str = 'key_openai.txt') -> Optional[str]:
     key_path = Path(key_file)
     if key_path.exists():
         try:
-            with open(key_path, 'r') as f:
+            with open(key_path, 'r', encoding='utf-8') as f:
                 return f.read().strip()
         except Exception as e:
             logger.error(f"Failed to read API key from {key_file}: {e}")
