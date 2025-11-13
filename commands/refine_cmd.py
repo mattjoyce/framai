@@ -94,7 +94,7 @@ def run_refine_command(json_file: str, config: Dict[str, Any],
 
     # Refine transcriptions
     print_section("Refining transcriptions with GPT-4")
-    refined_count = refine_transcriptions(events_to_refine, config, model,
+    refined_count = refine_transcriptions(events_to_refine, data, config, model,
                                          temperature, prompt_template, api_key)
 
     if refined_count == 0:
@@ -116,15 +116,17 @@ def run_refine_command(json_file: str, config: Dict[str, Any],
         return False
 
 
-def refine_transcriptions(audio_events: list, config: Dict[str, Any],
+def refine_transcriptions(audio_events: list, full_data: Dict[str, Any],
+                         config: Dict[str, Any],  # pylint: disable=unused-argument
                          model: str, temperature: float,
                          prompt_template: Optional[str],
                          api_key: str) -> int:
     """
-    Refine transcriptions using GPT-4.
+    Refine transcriptions using GPT-4 with full context.
 
     Args:
         audio_events: List of audio event dictionaries
+        full_data: Complete JSON data including locations, weather, etc.
         config: Configuration dictionary
         model: GPT model name
         temperature: Temperature setting
@@ -134,17 +136,21 @@ def refine_transcriptions(audio_events: list, config: Dict[str, Any],
     Returns:
         Number of successfully refined transcriptions
     """
-    # Get prompts from config
-    system_prompt = config['ai_models']['openai']['prompts'].get(
-        'audio_librarian',
-        "You are an audio librarian with expertise in cataloging field recordings."
-    )
+    from pathlib import Path
 
-    if not prompt_template:
-        prompt_template = config['ai_models']['openai']['prompts'].get(
-            'recording_description',
-            "Write a concise recording description from these notes: {text}"
-        )
+    # Load prompt template from file
+    prompt_file = Path(__file__).parent.parent / 'prompts' / 'refine_prompt.txt'
+
+    if prompt_template:
+        # Use custom prompt if provided
+        user_prompt = prompt_template
+    elif prompt_file.exists():
+        # Load from external file
+        with open(prompt_file, 'r', encoding='utf-8') as f:
+            user_prompt = f.read()
+    else:
+        # Fallback to simple prompt
+        user_prompt = "Write a concise recording description from these notes:\n\n{text}"
 
     refined_count = 0
 
@@ -158,16 +164,50 @@ def refine_transcriptions(audio_events: list, config: Dict[str, Any],
                 continue
 
             try:
+                # Build context from full data
+                context_parts = []
+
+                # Add location information
+                locations = full_data.get('locations', [])
+                if locations:
+                    loc = locations[0]  # Use first location
+                    context_parts.append(f"Location: {loc.get('location_name', 'Unknown')}")
+                    context_parts.append(f"Coordinates: {loc.get('latitude', 'N/A')}, {loc.get('longitude', 'N/A')}")
+
+                    # Add weather data
+                    weather = loc.get('weather', {})
+                    if weather:
+                        temp = weather.get('temperature_2m', 'N/A')
+                        humidity = weather.get('relative_humidity_2m', 'N/A')
+                        weather_code = weather.get('weather_code', 'N/A')
+                        sunrise = weather.get('sunrise', 'N/A')
+                        sunset = weather.get('sunset', 'N/A')
+
+                        context_parts.append(f"Temperature: {temp}°C")
+                        context_parts.append(f"Humidity: {humidity}%")
+                        context_parts.append(f"Weather code: {weather_code}")
+                        context_parts.append(f"Sunrise: {sunrise}")
+                        context_parts.append(f"Sunset: {sunset}")
+
+                # Add recording metadata
+                context_parts.append(f"Filename: {event.get('audio_filename', 'Unknown')}")
+                context_parts.append(f"Duration: {event.get('duration_seconds', 'N/A')}s")
+                context_parts.append(f"Recorded: {event.get('created_date', 'N/A')}")
+
+                context = "\n".join(context_parts)
+
                 # Call GPT-4 (using new OpenAI API >=1.0.0)
                 from openai import OpenAI
                 client = OpenAI(api_key=api_key)
+
+                # Format prompt with context and text
+                formatted_prompt = user_prompt.format(context=context, text=text)
 
                 response = client.chat.completions.create(
                     model=model,
                     temperature=temperature,
                     messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": prompt_template.format(text=text)}
+                        {"role": "user", "content": formatted_prompt}
                     ]
                 )
 
