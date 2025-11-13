@@ -175,8 +175,11 @@ def refine_transcriptions(audio_events: list, config: Dict[str, Any],
                 continue
 
             try:
-                # Call GPT-4
-                response = openai.ChatCompletion.create(
+                # Call GPT-4 (using new OpenAI API >=1.0.0)
+                from openai import OpenAI
+                client = OpenAI(api_key=api_key)
+
+                response = client.chat.completions.create(
                     model=model,
                     temperature=temperature,
                     messages=[
@@ -185,7 +188,7 @@ def refine_transcriptions(audio_events: list, config: Dict[str, Any],
                     ]
                 )
 
-                refined_text = response['choices'][0]['message']['content']
+                refined_text = response.choices[0].message.content
                 event['gpt_refined_text'] = refined_text
                 refined_count += 1
 

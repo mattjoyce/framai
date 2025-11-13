@@ -18,7 +18,7 @@ rich>=13.0.0
 # AI & ML Models
 # =============================================================================
 openai>=1.0.0                           # OpenAI API (GPT-4, Whisper API)
-openai-whisper                          # Local Whisper transcription
+whisper-turbo                           # Fast Whisper transcription for Apple Silicon (MLX)
 
 # =============================================================================
 # Weather API (Open-Meteo)

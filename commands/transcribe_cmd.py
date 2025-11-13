@@ -44,10 +44,6 @@ def run_transcribe_command(directory: str, config: Dict[str, Any],
     Returns:
         True if successful, False otherwise
     """
-    # Fix OpenMP library conflicts on macOS
-    os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
-    os.environ['OMP_NUM_THREADS'] = '1'
-
     print_header("FRAMAI - Audio Transcription")
 
     # Extract options
@@ -87,23 +83,6 @@ def run_transcribe_command(directory: str, config: Dict[str, Any],
 
         print_dry_run_summary("Audio Transcription Plan", actions)
         return True
-
-    # Check for Whisper availability
-    try:
-        import whisper
-        whisper_available = True
-    except ImportError:
-        print_error("Whisper not installed. Install with: pip install openai-whisper")
-        return False
-
-    # Check for audio processing library
-    try:
-        from pydub import AudioSegment
-        audio_available = True
-    except ImportError:
-        print_error("Pydub not available (Python 3.13+ compatibility issue)")
-        print_info("Alternative: Use OpenAI Whisper API instead of local model")
-        return False
 
     # Process audio files
     print_section("Transcribing audio files")
@@ -181,92 +160,86 @@ def process_audio_files(audio_files: List[Path], directory: str,
     Returns:
         Dictionary with transcription results or None if failed
     """
-    try:
-        import whisper
-        from pydub import AudioSegment
-    except ImportError as e:
-        logger.error(f"Required library not available: {e}")
-        return None
+    from whisper_turbo import MLXWhisperTranscriber
+    from pydub import AudioSegment
 
-    # Load Whisper model
-    print_info(f"Loading Whisper model: {model}")
-    try:
-        model_path = config['ai_models']['whisper']['model_path']
-        whisper._download(whisper._MODELS[model], model_path, False)
-        whisper_model = whisper.load_model(model)
-    except Exception as e:
-        logger.error(f"Failed to load Whisper model: {e}")
-        return None
+    # Load Whisper model (using whisper-turbo for Apple Silicon)
+    print_info(f"Loading Whisper model: {model} (using MLX for Apple Silicon)")
+    transcriber = MLXWhisperTranscriber(model_name=model)
+    print_success("Model loaded successfully")
 
     # Transcribe each file
     audio_events = []
 
-    with create_progress_bar("Transcribing audio", total=len(audio_files)) as progress:
-        task = progress.add_task("Processing", total=len(audio_files), status="Starting...")
+    print_info(f"Transcribing {len(audio_files)} audio files...")
 
-        for audio_path in audio_files:
-            try:
-                # Load audio
-                audio = AudioSegment.from_file(str(audio_path))
-                audio_duration_ms = len(audio)
-                audio_duration_s = audio_duration_ms / 1000
+    for audio_path in audio_files:
+        try:
+            # Load audio file
+            audio = AudioSegment.from_file(str(audio_path))
+            audio_duration_s = len(audio) / 1000
 
-                # Get creation date
-                created_date = time.strftime(
-                    '%Y-%m-%dT%H:%M:%S',
-                    time.gmtime(audio_path.stat().st_ctime)
-                )
+            # Get creation date
+            created_date = time.strftime(
+                '%Y-%m-%dT%H:%M:%S',
+                time.gmtime(audio_path.stat().st_ctime)
+            )
 
-                # Prepare data structure
-                data = {
-                    "audio_filename": audio_path.name,
-                    "created_date": created_date,
-                    "duration_seconds": audio_duration_s
-                }
+            # Prepare data structure
+            data = {
+                "audio_filename": audio_path.name,
+                "created_date": created_date,
+                "duration_seconds": audio_duration_s
+            }
 
-                # Transcribe first N seconds (header)
-                transcribe_duration = min(duration, int(audio_duration_s))
-                text = ""
-                header_segment = audio[:transcribe_duration * 1000]
+            print_info(f"Processing: {audio_path.name} ({audio_duration_s:.1f}s)")
 
-                progress.update(task, status=f"Transcribing header: {audio_path.name[:20]}")
-                header_result = transcribe_segment(header_segment, whisper_model, word_timestamps)
+            transcribe_duration = min(duration, int(audio_duration_s))
+            full_text = ""
 
-                if header_result and header_result.get('segments'):
-                    text += header_result['text']
-                    # Get timestamp of last word (for trimming)
-                    first_word_start, last_word_end = get_first_and_last_word_time(header_result)
-                    if last_word_end:
-                        data['header'] = last_word_end
+            # Extract and transcribe first N seconds (header)
+            print_info(f"  Transcribing header ({transcribe_duration}s)...")
+            header_segment = audio[:transcribe_duration * 1000]
+            temp_header = "temp_header.wav"
+            header_segment.export(temp_header, format="wav")
 
-                # Transcribe last N seconds (footer) if audio is long enough
-                if audio_duration_s > duration * 2:
-                    footer_segment = audio[-transcribe_duration * 1000:]
+            header_text, header_segments = transcriber.transcribe_file(temp_header)
+            if header_text:
+                full_text += header_text
+                # Get timestamp where speech ends in header
+                if header_segments:
+                    data['header'] = max(seg['end'] for seg in header_segments)
 
-                    progress.update(task, status=f"Transcribing footer: {audio_path.name[:20]}")
-                    footer_result = transcribe_segment(footer_segment, whisper_model, word_timestamps)
+            os.remove(temp_header)
 
-                    if footer_result and footer_result.get('segments'):
-                        text += " " + footer_result['text']
-                        # Get timestamp of first word (for trimming)
-                        first_word_start, last_word_end = get_first_and_last_word_time(footer_result)
-                        if first_word_start:
-                            data['footer'] = first_word_start
+            # Extract and transcribe last N seconds (footer) if audio is long enough
+            if audio_duration_s > duration * 2:
+                print_info(f"  Transcribing footer ({transcribe_duration}s)...")
+                footer_segment = audio[-transcribe_duration * 1000:]
+                temp_footer = "temp_footer.wav"
+                footer_segment.export(temp_footer, format="wav")
 
-                # Store transcribed text
-                if text:
-                    data['extracted_text'] = text.strip()
-                    progress.update(task, status=f"✓ {audio_path.name[:20]}")
-                else:
-                    progress.update(task, status=f"⚠️  No speech: {audio_path.name[:20]}")
+                footer_text, footer_segments = transcriber.transcribe_file(temp_footer)
+                if footer_text:
+                    full_text += " " + footer_text
+                    # Get timestamp where speech starts in footer
+                    if footer_segments:
+                        data['footer'] = min(seg['start'] for seg in footer_segments)
 
-                audio_events.append(data)
-                progress.advance(task)
+                os.remove(temp_footer)
 
-            except Exception as e:
-                logger.error(f"Error processing {audio_path.name}: {e}")
-                progress.update(task, status=f"❌ Error: {audio_path.name[:20]}")
-                progress.advance(task)
+            # Store transcribed text
+            if full_text:
+                data['extracted_text'] = full_text.strip()
+                print_success(f"✓ Transcribed {audio_path.name}")
+            else:
+                print_warning(f"⚠️  No speech detected: {audio_path.name}")
+
+            audio_events.append(data)
+
+        except Exception as e:
+            logger.error(f"Error processing {audio_path.name}: {e}")
+            print_error(f"❌ Error processing {audio_path.name}: {e}")
 
     results = {
         'audio_events': audio_events,
@@ -279,75 +252,6 @@ def process_audio_files(audio_files: List[Path], directory: str,
     }
 
     return results
-
-
-def transcribe_segment(audio_segment, whisper_model, word_timestamps: bool) -> Optional[Dict[str, Any]]:
-    """
-    Transcribe an audio segment using Whisper.
-
-    Args:
-        audio_segment: AudioSegment to transcribe
-        whisper_model: Loaded Whisper model
-        word_timestamps: Include word-level timestamps
-
-    Returns:
-        Transcription result dictionary or None
-    """
-    try:
-        # Export to temporary file
-        temp_file = "temp.mp3"
-        audio_segment.export(temp_file, format="mp3")
-
-        # Transcribe
-        result = whisper_model.transcribe(
-            temp_file,
-            word_timestamps=word_timestamps,
-            fp16=False
-        )
-
-        # Clean up temp file
-        try:
-            os.remove(temp_file)
-        except:
-            pass
-
-        return result
-
-    except Exception as e:
-        logger.error(f"Transcription error: {e}")
-        return None
-
-
-def get_first_and_last_word_time(transcription_result: Dict[str, Any]) -> Tuple[Optional[float], Optional[float]]:
-    """
-    Get the start time of the first word and end time of the last word.
-
-    Args:
-        transcription_result: Whisper transcription result
-
-    Returns:
-        Tuple of (first_word_start, last_word_end) in seconds
-    """
-    segments = transcription_result.get("segments", [])
-    if not segments:
-        return None, None
-
-    try:
-        first_segment = segments[0]
-        last_segment = segments[-1]
-
-        first_word_start = first_segment["words"][0]["start"]
-        last_word_end = last_segment["words"][-1]["end"]
-
-        return first_word_start, last_word_end
-    except (KeyError, IndexError):
-        # If word timestamps not available, use segment timestamps
-        try:
-            first_word_start = segments[0].get("start")
-            last_word_end = segments[-1].get("end")
-            return first_word_start, last_word_end
-        except:
-            return None, None
 
 
 def display_summary(results: Dict[str, Any]) -> None:
@@ -395,7 +299,7 @@ def save_results(results: Dict[str, Any], output_file: str, directory: str) -> b
     try:
         # Resolve output path
         output_path = Path(output_file)
-        if not output_path.is_absolute():
+        if not output_path.is_absolute() and not str(output_file).startswith(directory):
             output_path = Path(directory) / output_file
 
         # Load existing data if present

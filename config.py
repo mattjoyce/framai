@@ -33,6 +33,17 @@ def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
         FileNotFoundError: If explicit config_path provided but doesn't exist
         yaml.YAMLError: If config file has invalid YAML syntax
     """
+    # Load environment variables from ~/.env if it exists
+    env_file = Path.home() / '.env'
+    if env_file.exists():
+        with open(env_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ[key.strip()] = value.strip()
+        logger.debug(f"Loaded environment variables from {env_file}")
+
     config = None
     config_source = None
 
