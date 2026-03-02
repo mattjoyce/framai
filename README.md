@@ -448,3 +448,6 @@ Open an issue on GitHub or reach out to the community.
 ---
 
 **Made with ❤️ for field recordists everywhere**
+
+## Changelog
+See [CHANGELOG.md](CHANGELOG.md).
